@@ -89,6 +89,7 @@ BEGIN_MESSAGE_MAP(CInjectorDlg, CDialog)
     ON_WM_QUERYDRAGICON()
     ON_BN_CLICKED(IDC_BUTTON1, OnInject)
     ON_BN_CLICKED(IDC_BUTTON2, OnDump)
+    ON_BN_CLICKED(IDC_DUMP2, OnDump2)
     ON_BN_CLICKED(IDC_BUTTON3, ClearLeaks)
     ON_BN_CLICKED(IDC_BUTTON4, OnRefresh)
     ON_BN_CLICKED(IDC_BUTTON5, OnInfo)
@@ -267,6 +268,13 @@ void CInjectorDlg::OnDump()
     HANDLE hDuumpEvent = CreateEvent( 0, TRUE, FALSE, DUMP_EVENT );
     SetEvent( hDuumpEvent );
     CloseHandle( hDuumpEvent );
+}
+
+void CInjectorDlg::OnDump2()
+{
+    HANDLE hDuumpEvent = CreateEvent(0, TRUE, FALSE, DUMP2_EVENT);
+    SetEvent(hDuumpEvent);
+    CloseHandle(hDuumpEvent);
 }
 
 void CInjectorDlg::ClearLeaks() 

@@ -78,73 +78,73 @@ CArrayEx<HOOKFUNCDESC,HOOKFUNCDESC&> g_arrHookedFunctions;
 #ifdef _M_IX86
 void StackDump( LPVOID pMem, DWORD dwBytes)
 {
-        STACKFRAME64 stStackFrame = {0};
-        CONTEXT stContext = {0};
-        stContext.ContextFlags = CONTEXT_ALL;    
-        __asm    call x
-        __asm x: pop eax
-        __asm    mov stContext.Eip, eax
-        __asm    mov stContext.Ebp, ebp
-        __asm    mov stContext.Esp, esp
+    STACKFRAME64 stStackFrame = {0};
+    CONTEXT stContext = {0};
+    stContext.ContextFlags = CONTEXT_ALL;    
+    __asm    call x
+    __asm x: pop eax
+    __asm    mov stContext.Eip, eax
+    __asm    mov stContext.Ebp, ebp
+    __asm    mov stContext.Esp, esp
 
-        stStackFrame.AddrPC.Offset = stContext.Eip;
-        stStackFrame.AddrPC.Mode = AddrModeFlat;
-        stStackFrame.AddrFrame.Offset = stContext.Ebp;
-        stStackFrame.AddrFrame.Mode = AddrModeFlat;
-        stStackFrame.AddrStack.Offset = stContext.Esp;
-        stStackFrame.AddrStack.Mode = AddrModeFlat;
+    stStackFrame.AddrPC.Offset = stContext.Eip;
+    stStackFrame.AddrPC.Mode = AddrModeFlat;
+    stStackFrame.AddrFrame.Offset = stContext.Ebp;
+    stStackFrame.AddrFrame.Mode = AddrModeFlat;
+    stStackFrame.AddrStack.Offset = stContext.Esp;
+    stStackFrame.AddrStack.Mode = AddrModeFlat;
  
-//         BYTE SymBol[ sizeof(SYMBOL_INFO) + STACKWALK_MAX_NAMELEN ] = {0};
-// 
-//         SYMBOL_INFO* pSymbol = (SYMBOL_INFO*)SymBol;
-//         pSymbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-//         pSymbol->MaxNameLen = STACKWALK_MAX_NAMELEN;
-// 
-//         IMAGEHLP_LINE64 Line = {0};
-//         Line.SizeOfStruct = sizeof( IMAGEHLP_LINE64 );
+    //BYTE SymBol[ sizeof(SYMBOL_INFO) + STACKWALK_MAX_NAMELEN ] = {0};
+ 
+    //SYMBOL_INFO* pSymbol = (SYMBOL_INFO*)SymBol;
+    //pSymbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+    //pSymbol->MaxNameLen = STACKWALK_MAX_NAMELEN;
+ 
+    //IMAGEHLP_LINE64 Line = {0};
+    //Line.SizeOfStruct = sizeof( IMAGEHLP_LINE64 );
         
-        HANDLE hProcess = GetCurrentProcess();
-        MEM_INFO stInfo;
-        //stInfo.parCallStack = new STACK_ARRAY;
+    HANDLE hProcess = GetCurrentProcess();
+    MEM_INFO stInfo;
+    //stInfo.parCallStack = new STACK_ARRAY;
         
-        void * p = AllocMem(sizeof(STACK_ARRAY));
-        stInfo.parCallStack = new( (void*)p ) STACK_ARRAY;
+    void * p = AllocMem(sizeof(STACK_ARRAY));
+    stInfo.parCallStack = new( (void*)p ) STACK_ARRAY;
         
-        stInfo.nMemSize = dwBytes;
-        for( int i =0; i < g_StackDepth ; i++ )// only retrieve 40 functions
+    stInfo.nMemSize = dwBytes;
+    for( int i =0; i < g_StackDepth ; i++ )// only retrieve 40 functions
+    {
+        BOOL b = StackWalk64( IMAGE_FILE_MACHINE_I386, hProcess, GetCurrentThread(), 
+                          &stStackFrame ,&stContext, 0, 
+                          SymFunctionTableAccess64 , SymGetModuleBase64, NULL );
+        if ( !b )
         {
-            BOOL b = StackWalk64( IMAGE_FILE_MACHINE_I386, hProcess, GetCurrentThread(), 
-                              &stStackFrame ,&stContext, 0, 
-                              SymFunctionTableAccess64 , SymGetModuleBase64, NULL );
-            if ( !b )
-            {
-               break;
-            }
-            DWORD64 dwDisplacement = 0;
-            if (stStackFrame.AddrPC.Offset == stStackFrame.AddrReturn.Offset)
-            {
-              break;
-            }
+            break;
+        }
+        DWORD64 dwDisplacement = 0;
+        if (stStackFrame.AddrPC.Offset == stStackFrame.AddrReturn.Offset)
+        {
+          break;
+        }
 
 //////////////////////////////////////////////////////////////////////////
-        //if( SymFromAddr( hProcess, stStackFrame.AddrPC.Offset, &dwDisplacement, pSymbol ))
-        //{
-        //		CString cs = "Ordinal823";
-        //	if( cs == pSymbol->Name)
-        //		{
-        //			break;
-        //		}
-        //			
-        //}
+    //if( SymFromAddr( hProcess, stStackFrame.AddrPC.Offset, &dwDisplacement, pSymbol ))
+    //{
+    //		CString cs = "Ordinal823";
+    //	if( cs == pSymbol->Name)
+    //		{
+    //			break;
+    //		}
+    //			
+    //}
 //////////////////////////////////////////////////////////////////////////
 
-            if( i <= 1 )// ignore the functions on the top of stack which is our own.
-            {
-                continue;
-            }
-            stInfo.parCallStack->Add( stStackFrame.AddrPC.Offset );
-        }        
-        m_MemMap[pMem] = stInfo;        
+        if( i <= 1 )// ignore the functions on the top of stack which is our own.
+        {
+            continue;
+        }
+        stInfo.parCallStack->Add( stStackFrame.AddrPC.Offset );
+    }        
+    m_MemMap[pMem] = stInfo;        
 }
 
 #else
@@ -2542,20 +2542,26 @@ DWORD WINAPI DumpController( LPVOID pParam )
  
     
     HANDLE hDumpEvent	 = CreateEvent( 0, TRUE, FALSE, DUMP_EVENT );
-    HANDLE hMemRestEvent = CreateEvent( 0, TRUE, FALSE, CLEAR_LEAKS );
+    HANDLE hMemRestEvent = CreateEvent(0, TRUE, FALSE, CLEAR_LEAKS);
     HANDLE hSymBolInfo   = CreateEvent( 0, TRUE, FALSE, SHOW_PDB_INFO );
-    HANDLE hArray[3] = { hDumpEvent, hMemRestEvent, hSymBolInfo };
+    HANDLE hDumpEvent2 = CreateEvent(0, TRUE, FALSE, DUMP2_EVENT);
+    HANDLE hArray[4] = { hDumpEvent, hMemRestEvent, hSymBolInfo, hDumpEvent2 };
     g_bHooked = true; 
     while( 1 )
     {
-        DWORD dwWait = WaitForMultipleObjects( 3, hArray, FALSE, INFINITE );
+        DWORD dwWait = WaitForMultipleObjects( 4, hArray, FALSE, INFINITE );
         CSingleLock lockObj( &SyncObj, TRUE );
         g_bTrack = false;
         lockObj.Unlock();
         if( dwWait == WAIT_OBJECT_0 )
         {
             ResetEvent( hDumpEvent );
-            DumpLeak();
+            DumpLeak(0);
+        }
+        else if (dwWait == WAIT_OBJECT_0 + 3)
+        {
+            ResetEvent( hDumpEvent2 );
+            DumpLeak(1);
         }
         else if( dwWait == WAIT_OBJECT_0 + 1)
         {
@@ -2571,7 +2577,7 @@ DWORD WINAPI DumpController( LPVOID pParam )
             dlg.DoModal();
             ResetEvent( hSymBolInfo );
         }
-        else if( dwWait == WAIT_OBJECT_0 + 3)// exit event
+        else if( dwWait == WAIT_OBJECT_0 + 4)// exit event
         {
             break;
         }
@@ -2582,6 +2588,7 @@ DWORD WINAPI DumpController( LPVOID pParam )
     CloseHandle( hDumpEvent );
     CloseHandle( hMemRestEvent );
     CloseHandle( hSymBolInfo );
+    CloseHandle( hDumpEvent2 );
     return 0;
 }
 
@@ -2722,7 +2729,161 @@ CString GetHandleType( HGDIOBJ hObj, SIZE_T nType )
     return csType;
 }
 
-void DumpLeak()
+CString DumpStack(STACK_ARRAY *pStack) {
+    CString ret;
+    DWORD64 dwDisplacement;
+
+    BYTE SymBol[sizeof(SYMBOL_INFO) + STACKWALK_MAX_NAMELEN] = { 0 };
+    SYMBOL_INFO* pSymbol = (SYMBOL_INFO*)SymBol;
+    pSymbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+    pSymbol->MaxNameLen = STACKWALK_MAX_NAMELEN;
+
+    IMAGEHLP_LINE64 Line = { 0 };
+    Line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+
+    HANDLE hProcess = GetCurrentProcess();
+    int nCount = (int)pStack->GetCount();
+    for (int nIdx = 1; nIdx < nCount; nIdx++)
+    {
+        DWORD64 dwOffset = pStack->GetAt(nIdx);
+        CString cs;
+        CString csFunctionName;
+
+        if (!SymFromAddr(hProcess, dwOffset, &dwDisplacement, pSymbol))
+        {
+            /*csFunctionName = "Unknown";*/
+            MEMORY_BASIC_INFORMATION stMemoryInfo;
+            HMODULE hModule = 0;
+            // Get the information about the virtual address space of the calling process
+            if (VirtualQuery((void*)dwOffset, &stMemoryInfo, sizeof(stMemoryInfo))
+                != 0)
+            {
+                hModule = reinterpret_cast<HMODULE>(
+                    stMemoryInfo.AllocationBase);
+            }
+            // Get the exe's or ddl's file name
+            DWORD dwFileNameLength = GetModuleFileName(hModule, csFunctionName.GetBuffer(MAX_PATH), MAX_PATH);
+            csFunctionName.ReleaseBuffer();
+        }
+        else
+        {
+            csFunctionName = pSymbol->Name;
+        }
+        DWORD dwLine = 0;
+        if (SymGetLineFromAddr64(hProcess, dwOffset, &dwLine, &Line))
+        {
+            CString csFormatString;
+            int n = 40 - csFunctionName.GetLength();
+            csFormatString.Format(_T("%s%d%s"), _T("%s%"), n, _T("s%s(%d)"));
+            cs.Format(csFormatString, csFunctionName, _T(" "), Line.FileName, Line.LineNumber);
+        }
+        else
+        {
+            cs = csFunctionName;
+        }
+        //  CString cs = pStack->GetAt(nIdx);
+        cs += _T("\r\n");
+        ret += cs;
+    }
+    ret += "------------------------------------------------\r\n\r\n\r\n\r\n";
+    return ret;
+}
+
+void Dump1(CFile &File)
+{
+    MEM_INFO stInfo;
+    LPVOID lMem;
+    POSITION pos = m_MemMap.GetStartPosition();
+    while (pos)
+    {
+        m_MemMap.GetNextAssoc(pos, lMem, stInfo);
+        CString csLength;
+        if (HT_MEMORY == g_HookType)
+        {
+            csLength.Format("-->Bytes allocated -- %d\r\n\r\n", stInfo.nMemSize);
+        }
+        else if (HT_GDI == g_HookType)
+        {
+            CString csType = GetGDIHandleType(lMem, stInfo.nMemSize);
+            csLength.Format("-->%s -- 0x%x\r\n\r\n", csType, lMem);
+            //csLength.Format( "Bytes allocated -- %d\r\n\r\n", stInfo.nMemSize );
+        }
+        else if (HT_HANDLE == g_HookType)
+        {
+            CString csType = GetHandleType(lMem, stInfo.nMemSize);
+            csLength.Format("-->%s -- 0x%x\r\n\r\n", csType, lMem);
+        }
+
+        File.Write(csLength, csLength.GetLength());
+
+        CString csStack = DumpStack(stInfo.parCallStack);
+        File.Write(csStack, csStack.GetLength());
+    }
+}
+
+#include <map>
+#include <string>
+struct Stack
+{
+    CString stack;
+    DWORD nMemSize;
+    DWORD count;
+    LPVOID lMem;
+};
+void Dump2(CFile &File)
+{
+    std::map<DWORD64, Stack> stackMap;
+
+    MEM_INFO stInfo;
+    LPVOID lMem;
+    POSITION pos = m_MemMap.GetStartPosition();
+    while (pos)
+    {
+        m_MemMap.GetNextAssoc(pos, lMem, stInfo);
+        DWORD64 key = stInfo.parCallStack->Sum();
+        auto itStack = stackMap.find(key);
+        if (itStack == stackMap.end()) {
+            Stack& stack = stackMap[key];
+            stack.stack = DumpStack(stInfo.parCallStack);
+            stack.count = 1;
+            stack.nMemSize = stInfo.nMemSize;
+            stack.lMem = lMem;
+        }
+        else {
+            itStack->second.count++;
+            if (HT_MEMORY == g_HookType)
+            {
+                itStack->second.nMemSize += stInfo.nMemSize;
+            }
+        }
+    }
+
+    for (auto it : stackMap)
+    {
+        Stack& stack = it.second;
+        CString csLength;
+        if (HT_MEMORY == g_HookType)
+        {
+            int avg = stack.nMemSize / stack.count;
+            csLength.Format("-->%d Bytes allocated -- %d times, %d bytes average\r\n\r\n", stack.nMemSize, stack.count, avg);
+        }
+        else if (HT_GDI == g_HookType)
+        {
+            CString csType = GetGDIHandleType(stack.lMem, stack.nMemSize);
+            csLength.Format("-->%s -- %d times, first 0x%x\r\n\r\n", csType, stack.count, stack.lMem);
+            //csLength.Format( "Bytes allocated -- %d\r\n\r\n", stInfo.nMemSize );
+        }
+        else if (HT_HANDLE == g_HookType)
+        {
+            CString csType = GetHandleType(stack.lMem, stack.nMemSize);
+            csLength.Format("-->%s -- %d times, first 0x%x\r\n\r\n", csType, stack.count, stack.lMem);
+        }
+        File.Write(csLength, csLength.GetLength());
+        File.Write(stack.stack, stack.stack.GetLength());
+    }
+}
+
+void DumpLeak(int type)
 {
     if( 0 == m_MemMap.GetCount())
     {
@@ -2741,88 +2902,10 @@ void DumpLeak()
         AfxMessageBox( "Failed to create file" );
         return;
     }
-    HANDLE hProcess = GetCurrentProcess();
-    DWORD64 dwDisplacement;
-
-    BYTE SymBol[ sizeof(SYMBOL_INFO) + STACKWALK_MAX_NAMELEN ] = {0};
-    SYMBOL_INFO* pSymbol = (SYMBOL_INFO*)SymBol;
-    pSymbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-    pSymbol->MaxNameLen = STACKWALK_MAX_NAMELEN;
-
-    IMAGEHLP_LINE64 Line = {0};
-    Line.SizeOfStruct = sizeof( IMAGEHLP_LINE64 );
-
-    MEM_INFO stInfo;
-    LPVOID lMem;
-    POSITION pos = m_MemMap.GetStartPosition();
-    while( pos )
-    {
-        m_MemMap.GetNextAssoc( pos, lMem, stInfo );
-        CString csLength;
-        if( HT_MEMORY == g_HookType )
-        {
-            csLength.Format( "-->Bytes allocated -- %d\r\n\r\n", stInfo.nMemSize );
-        }
-        else if( HT_GDI == g_HookType )
-        {
-            CString csType = GetGDIHandleType( lMem, stInfo.nMemSize );
-            csLength.Format( "-->%s -- 0x%x\r\n\r\n", csType, lMem );
-            //csLength.Format( "Bytes allocated -- %d\r\n\r\n", stInfo.nMemSize );
-        }
-        else if( HT_HANDLE == g_HookType )
-        {
-            CString csType = GetHandleType( lMem, stInfo.nMemSize );
-            csLength.Format( "-->%s -- 0x%x\r\n\r\n", csType, lMem );
-        }
-        
-        File.Write( csLength, csLength.GetLength());
-        int nCount = (int)stInfo.parCallStack->GetCount();
-        for( int nIdx =1;nIdx< nCount;nIdx++ )
-        {
-            DWORD64 dwOffset = (*(stInfo.parCallStack)).GetAt( nIdx );
-
-            CString cs;
-            CString csFunctionName;
-            
-            if( !SymFromAddr( hProcess, dwOffset, &dwDisplacement, pSymbol ))
-            {
-                /*csFunctionName = "Unknown";*/                
-                MEMORY_BASIC_INFORMATION stMemoryInfo;                 
-                HMODULE hModule = 0;
-                // Get the information about the virtual address space of the calling process
-                if( VirtualQuery( (void*)dwOffset, &stMemoryInfo, sizeof( stMemoryInfo ))
-                                                                            != 0 )
-                {            
-                    hModule = reinterpret_cast<HMODULE>( 
-                                                    stMemoryInfo.AllocationBase);
-                }
-                // Get the exe's or ddl's file name
-                DWORD dwFileNameLength = GetModuleFileName( hModule, csFunctionName.GetBuffer( MAX_PATH ), MAX_PATH );
-                csFunctionName.ReleaseBuffer();
-            }
-            else
-            {
-                csFunctionName = pSymbol->Name;
-            }
-            DWORD dwLine = 0;
-            if( SymGetLineFromAddr64( hProcess, dwOffset, &dwLine, &Line ))
-            {
-                CString csFormatString;
-                int n = 40 - csFunctionName.GetLength();
-                csFormatString.Format( _T("%s%d%s"), _T("%s%"), n, _T("s%s(%d)"));
-                cs.Format( csFormatString, csFunctionName, _T(" "), Line.FileName, Line.LineNumber );
-            }
-            else
-            {
-                cs = csFunctionName;
-            }
-//            CString cs = (*(stInfo.parCallStack)).GetAt( nIdx);
-            cs += _T("\r\n");
-            File.Write( cs, cs.GetLength());
-        }        
-        TCHAR tc[] = {"------------------------------------------------\r\n\r\n\r\n\r\n"};
-        File.Write( tc, sizeof(tc) - 1);
-    }
+    if (type)
+        Dump2(File);
+    else
+        Dump1(File);
     File.Close();
 
     if( IDYES == AfxMessageBox( _T("Dump saved.\nDo you want to open it?" ) , MB_YESNO ))
@@ -2846,9 +2929,8 @@ void DumpLeak()
         csFileName += _T("\"");
         ShellExecute( NULL, _T("open"), csDllPath, csFileName, 0, SW_SHOWDEFAULT );
     }
-    
-
 }
+
 void EmptyLeakMap()
 {
     POSITION pos = m_MemMap.GetStartPosition();

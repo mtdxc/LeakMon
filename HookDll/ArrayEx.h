@@ -122,6 +122,32 @@ public:
 	INT_PTR Append(const CArrayEx& src);
 	void Copy(const CArrayEx& src);
 
+    int compare(const CArrayEx& src){
+      ASSERT_VALID(this);
+      if (this == &src) return 0;
+      int ret = GetSize() - src.GetSize();
+      if (ret == 0) {
+        for (size_t i = 0; i < GetSize(); i++)
+        {
+          ret = GetAt(i) - str.GetAt(i);
+          if (ret!=0)
+            break;
+        }
+      }
+      return ret;
+    }
+    bool operator == (const CArrayEx& src) const {
+        return compare(src) == 0;
+    }
+
+    TYPE Sum() const {
+        TYPE sum = TYPE();
+        for (INT_PTR pos = 0; pos < GetSize(); pos++) {
+            sum += GetAt(pos);
+        }
+        return sum;
+    }
+
 	// overloaded operator helpers
 	const TYPE& operator[](INT_PTR nIndex) const;
 	TYPE& operator[](INT_PTR nIndex);

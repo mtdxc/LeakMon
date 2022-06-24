@@ -73,7 +73,7 @@ enum HANDLE_TYPES_e
 	TYPE_UNKNOWN
 };
 
-void DumpLeak();
+void DumpLeak(int type);
 void EmptyLeakMap();
 void HookMemAlloc();
 void HookGDIAlloc();

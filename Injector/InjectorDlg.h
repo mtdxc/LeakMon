@@ -45,7 +45,8 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	afx_msg void OnInject();
 	afx_msg void OnDump();
-	afx_msg void ClearLeaks();
+    afx_msg void OnDump2();
+    afx_msg void ClearLeaks();
 	afx_msg void OnRefresh();
 	afx_msg void OnInfo();
 	afx_msg void OnColumnclickList1(NMHDR* pNMHDR, LRESULT* pResult);
